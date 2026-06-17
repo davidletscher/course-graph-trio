@@ -1,0 +1,328 @@
+%% SIGCSE TS 2027 submission --- ACM SIG Conference Proceedings format.
+%%
+%% Per the SIGCSE TS 2027 CFP: 2-column ACM "sigconf" format, US Letter,
+%% double-anonymized. Body limited to 6 pages; references may use a 7th page.
+%% Do NOT alter fonts, margins, or the template.
+%%
+%% NOTE (2027-specific): the CFP says do NOT use the [anonymous] class option.
+%% Instead, keep visible author blocks under the title with all identifying
+%% information removed, reserving the space (4 lines/author, 3 blocks/row).
+%% So we compile with [review] only and anonymize the \author blocks by hand.
+%% For camera-ready: remove "review", fill in the real \author blocks, and
+%% restore the \acmConference / copyright / DOI block.
+%%
+%% Build:  make        (pdflatex -> bibtex -> pdflatex x2)
+%% acmart.cls and ACM-Reference-Format.bst are vendored in this directory.
+
+\documentclass[sigconf,review]{acmart}
+
+%% --- Anonymous review: suppress the ACM reference + copyright strip ---
+\settopmatter{printacmref=false}
+\setcopyright{none}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\pagestyle{plain}
+
+%% --- Conference / DOI metadata (placeholders until acceptance) ---
+\acmConference[SIGCSE TS '27]{Proceedings of the 58th ACM Technical Symposium
+  on Computer Science Education}{February 17--20, 2027}{Sacramento, CA, USA}
+%% \acmDOI{}        % filled in for camera-ready
+%% \acmISBN{}       % filled in for camera-ready
+
+\usepackage{booktabs}
+\usepackage{balance}
+
+\begin{document}
+
+%% ===========================================================================
+\title{Checking Course Designs Against Three Knowledge Graphs}
+\subtitle{A Tool for AI-Assisted Backwards Design}
+%% TODO: title is a working draft --- revisit once the evaluation lands.
+
+%% --- Authors ---
+%% Double-anonymized: identifying info removed, but the blocks stay visible to
+%% reserve space (CFP: 4 lines/author, up to 3 author blocks per row). Replace
+%% with real author/affiliation/email blocks for camera-ready.
+\author{Anonymous Author}
+\affiliation{%
+  \institution{Anonymous Institution}
+  \city{Anonymized}
+  \country{}
+}
+\email{anonymous1@example.com}
+
+\author{Anonymous Author}
+\affiliation{%
+  \institution{Anonymous Institution}
+  \city{Anonymized}
+  \country{}
+}
+\email{anonymous2@example.com}
+
+\renewcommand{\shortauthors}{Anonymous et al.}
+
+%% ===========================================================================
+\begin{abstract}
+%% TODO: tighten once results are in. Per the study design, the abstract must
+%% NOT promise a level of "novel" findings the formative data may not deliver.
+Backwards design asks instructors to align learning outcomes, activities, and
+assessments, but the alignment lives implicitly across a syllabus, slide decks,
+and an assessment plan, where gaps are hard to see. We present a tool that makes
+this structure explicit and checkable. The tool represents a course as a
+\emph{course-design graph} that references two shared upstream knowledge
+graphs---one for learning science and pedagogy, one for the course's
+content---and runs a suite of automated checks for alignment, coverage,
+cognitive-demand progression, scaffolding, and running-example consistency. An
+LLM-assisted pipeline encodes a course directly from the materials an instructor
+already has (objectives, slide decks, an assessment plan), so adoption does not
+require hand-building a graph. Each finding is paired with a concrete, and where
+possible closed-loop--validated, remediation. We describe the schema, the
+checks, the encoding pipeline, and a worked encoding of a real undergraduate AI
+course (a \emph{NNN}-node design graph), and report a formative multi-instructor
+study of whether the tool's findings are judged valid, novel, and actionable for
+instructors' own courses. \textbf{[Results: TODO.]} The schema, check
+definitions, and encoding prompts are released to support adoption.
+\end{abstract}
+
+%% --- CCS concepts (pick the final set from the ACM CCS tool) ---
+\begin{CCSXML}
+<ccs2012>
+   <concept>
+       <concept_id>10003456.10003457.10003527.10003531</concept_id>
+       <concept_desc>Social and professional topics~Computer science education</concept_desc>
+       <concept_significance>500</concept_significance>
+   </concept>
+   <concept>
+       <concept_id>10003456.10003457.10003527.10003528</concept_id>
+       <concept_desc>Social and professional topics~Curriculum development</concept_desc>
+       <concept_significance>300</concept_significance>
+   </concept>
+   <concept>
+       <concept_id>10010147.10010178.10010179</concept_id>
+       <concept_desc>Computing methodologies~Knowledge representation and reasoning</concept_desc>
+       <concept_significance>100</concept_significance>
+   </concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Social and professional topics~Computer science education}
+\ccsdesc[300]{Social and professional topics~Curriculum development}
+\ccsdesc[100]{Computing methodologies~Knowledge representation and reasoning}
+
+\keywords{course design, backwards design, constructive alignment, knowledge
+graphs, curriculum tools, large language models, instructional design}
+
+\maketitle
+
+%% ===========================================================================
+\section{Introduction}
+\label{sec:intro}
+
+Backwards design~\cite{wiggins2005understanding,tyler1949basic} and constructive
+alignment~\cite{biggs1996constructive} give a clear prescription: start from the
+learning outcomes, choose assessments that provide evidence those outcomes were
+met, and choose activities that prepare students for those assessments. The
+prescription is widely taught and widely endorsed. Yet the artifacts that make up
+an actual course---a syllabus, a sequence of slide decks, an assessment plan, a
+list of in-class activities---encode this alignment only implicitly and
+redundantly. Whether every outcome is actually assessed, whether an assessment
+sits at the cognitive level its outcome demands, whether a topic is assessed
+before it is taught, or whether a worked example is reused consistently enough to
+support transfer, are all questions an instructor must answer by reading the
+whole course and holding it in their head at once. They are exactly the questions
+that go unanswered when a course is revised one deck at a time.
+
+% --- The gap / why now ---
+% TODO: 1 paragraph. Position against (a) curriculum ontologies and KG
+% representations of curriculum [christou2025ontology, chen2018knowedu,
+% melillan2023software] --- which represent but do not *check* against design
+% principles --- and (b) LLM generation of course artifacts
+% [hu2024teaching, zheng2025lessonplanlm] --- which generate but are not grounded
+% in a checkable, instructor-owned representation. The gap: a tool that makes a
+% real course's design *checkable* against backwards-design principles, encoded
+% automatically from existing materials.
+
+% --- This paper / contributions ---
+We present a tool that makes a course's design explicit and automatically
+checkable. The central representation is a \emph{course-design graph} that
+references two shared, reusable upstream knowledge graphs---one for learning
+science and pedagogy, one for the course's subject-matter content---with all
+cross-graph edges pointing outward from the design graph
+(\S\ref{sec:overview}). Over this representation the tool runs a suite of
+backwards-design checks (\S\ref{sec:checks}), encodes a course from its existing
+raw materials via an LLM-assisted pipeline (\S\ref{sec:pipeline}), and turns each
+finding into a concrete remediation (\S\ref{sec:recommend}).
+
+This paper contributes:
+\begin{itemize}
+  \item A \textbf{three-graph representation} for course design that separates
+    reusable pedagogy and content knowledge from a course-specific,
+    term-agnostic design graph (\S\ref{sec:overview}--\S\ref{sec:schema}).
+  \item A suite of \textbf{automated backwards-design checks}---alignment,
+    coverage, cognitive-demand progression, scaffolding/prerequisite ordering,
+    running-example consistency, and class-day structure---grounded in the
+    instructional-design and learning-science literature
+    (\S\ref{sec:checks}).
+  \item An \textbf{LLM-assisted encoding pipeline} that builds the graph from
+    materials instructors already have, lowering the adoption cost
+    (\S\ref{sec:pipeline}).
+  \item A \textbf{formative, multi-instructor evaluation} of whether the
+    findings are valid, novel, and actionable on instructors' own courses, with
+    honest reflection on which checks pay off (\S\ref{sec:eval}).
+\end{itemize}
+
+To support adoption, we release the schema, the check definitions, and the
+encoding prompts.\footnote{Artifact link withheld for anonymous review.}
+
+%% ===========================================================================
+\section{Background and Related Work}
+\label{sec:related}
+
+\subsection{Backwards design and constructive alignment}
+% TODO: Tyler rationale [tyler1949basic] -> Understanding by Design
+% [wiggins2005understanding] -> constructive alignment [biggs1996constructive];
+% 4C/ID [merrienboer1992training] as the closest full ID framework; Bloom's
+% revised taxonomy [anderson2001taxonomy] for the cognitive-demand axis;
+% Porter's content x cognitive-demand matrix [porter2002measuring] as the
+% established way to quantify coverage. These define the principles the checks
+% operationalize.
+
+\subsection{Knowledge graphs and ontologies for curriculum}
+% TODO: curriculum/learning-material ontologies [christou2025ontology],
+% education KG construction [chen2018knowedu], and the systematic mapping of
+% curriculum-design tool support [melillan2023software] (ontologies the most
+% common representation). Contrast: these *represent* curriculum; we *check* a
+% design against backwards-design principles and emit actionable findings.
+
+\subsection{LLMs for course-artifact generation}
+% TODO: GPT-4 teaching-plan generation + automated evaluation
+% [hu2024teaching]; KB-grounded lesson-plan generation [zheng2025lessonplanlm].
+% Contrast: these generate artifacts; our pipeline encodes an *existing* course
+% into an instructor-owned, checkable representation, and our LLM stages are a
+% seam inside an otherwise deterministic pipeline.
+
+\subsection{Evidence base for the example checks}
+% TODO: worked-examples synthesis [atkinson2000learning]; schema induction and
+% analogical transfer [gick1983schema]; analogical encoding via side-by-side
+% comparison [gentner2003learning]. These ground checks #13--17 (a running
+% example must be present, bridge concepts, and stay structurally consistent).
+
+%% ===========================================================================
+\section{System Overview: Three Coordinated Graphs}
+\label{sec:overview}
+
+% TODO: figure --- the three graphs and the one-way reference direction.
+% \begin{figure}[t] \centering \includegraphics ... \caption{} \end{figure}
+
+% The three graphs and their substrates:
+%   - Learning-science graph: how learning works, pedagogy, techniques. Shared.
+%   - Content graph: the course's subject material; supports supersession. Per-course.
+%   - (AI-education graph: teaching *moves*, grounds the class-day check.) Shared.
+%   - Course-design graph: activities, lectures, readings, assessments. Custom,
+%     markdown + YAML frontmatter; term-agnostic, versioned via git.
+% Reference direction is ONE-WAY: design references the upstream graphs; no
+% reverse links. An activity *instantiates* a technique; an activity *covers* a
+% content concept. This keeps the shared graphs reusable across courses.
+
+%% ===========================================================================
+\section{The Course-Design Schema}
+\label{sec:schema}
+
+% TODO: node + edge types; direction families (enablement / reference);
+% the "three Blooms" (intended on targets/CLOs, assessed on assessments,
+% afforded by activities); grading schemes (weighted/points/mastery/specs);
+% thematic (module) vs temporal (session/schedule) axes decoupled.
+% Keep this tight --- one labeled example fragment beats a full type catalog.
+
+%% ===========================================================================
+\section{Backwards-Design Checks}
+\label{sec:checks}
+
+% TODO: organize the ~25 checks into families and report what each protects:
+%   - structural alignment (outcome<->assessment<->activity)
+%   - coverage depth & sufficiency of evidence; Bloom mismatch
+%   - cognitive-demand progression: demand cliffs, premature integration,
+%     premature assessment; prerequisite ordering
+%   - running examples: presence, concept-bridging, structural consistency (#13-17)
+%   - grading-scheme and content-coverage checks
+%   - class-day structure / active-learning balance (#25)
+% Present as a table (check family | what it catches | grounding citation).
+% Note the per-target coverage scorecard.
+
+%% ===========================================================================
+\section{Encoding Pipeline}
+\label{sec:pipeline}
+
+% TODO: raw materials -> common IR -> course-design graph.
+%   - ingest adapters (LaTeX/Beamer, PPTX, Word, PDF; platform adapters)
+%   - deterministic stages (schedule order, grading-scheme detection,
+%     node/edge extraction) vs LLM stages (deck-outline interpretation,
+%     semantic develops/assesses, intended+afforded Bloom) behind a model seam
+%   - emphasize: instructor points the tool at existing materials; no hand-built
+%     graph. This is part of the contribution, not plumbing.
+
+%% ===========================================================================
+\section{From Findings to Fixes}
+\label{sec:recommend}
+
+% TODO: consolidation (collapse near-duplicate hits to one root-cause finding),
+% impact ranking (= #targets touched x severity weight), and remediation:
+% every finding -> a concrete fix, closed-loop validated where auto-applicable
+% (apply to scratch copy, re-run checker, keep only if it clears with no new
+% fires). Course-specific specifics are agent-authored, not produced by a model
+% call inside the scripts --- the tooling stays deterministic.
+
+%% ===========================================================================
+\section{Worked Example}
+\label{sec:example}
+
+% TODO: the real undergraduate Intro AI course, encoded as a NNN-node design
+% graph. Show 1-2 concrete findings end-to-end (finding -> graph location ->
+% proposed fix). Use a rendered-graph excerpt as the figure.
+
+%% ===========================================================================
+\section{Formative Evaluation}
+\label{sec:eval}
+
+% TODO (study in progress --- DO NOT report results until collected):
+% Multi-instructor usefulness study (n=4-5), each contributing one course they
+% taught. Per course: pipeline encodes it; instructor verifies the encoding
+% (layered fidelity check) and pre-registers their top-3 known issues; the tool
+% emits findings; instructor rates the top-10 on validity / novelty /
+% actionability / localization, then skims the remainder for mis-ranking.
+% Headline = novel-AND-actionable findings. Report per-check-category rates
+% (which checks pay off). Quote 3-5 verbatim novel-and-actionable vignettes.
+% Frame as a field study (ERT register), not a controlled experiment.
+
+\subsection{Method}
+% TODO
+
+\subsection{Results}
+% TODO --- placeholder until data are collected; no claims yet.
+
+%% ===========================================================================
+\section{Limitations and Caveats for Adopters}
+\label{sec:limitations}
+
+% TODO (honest reflection, ERT register, not a generalizability defense):
+% construct (usefulness vs. learning outcomes); encoding dependence;
+% social-desirability / no decoys this round; small non-random n;
+% researcher-in-the-loop; top-10 curation; novelty may be rare by construction.
+
+%% ===========================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+% TODO: 1 short paragraph. Restate the contribution and what an adopting
+% instructor or tool-builder should take away (which checks are worth
+% implementing). Point to the released artifacts.
+
+%% ===========================================================================
+\begin{acks}
+% Anonymized for review.
+\end{acks}
+
+\balance
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}
