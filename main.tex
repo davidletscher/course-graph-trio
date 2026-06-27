@@ -34,8 +34,8 @@
 \begin{document}
 
 %% ===========================================================================
-\title{Checking Course Designs Against Three Knowledge Graphs}
-\subtitle{A Tool for AI-Assisted Backwards Design}
+\title{Automated Curriculum Alignment Checking with Coordinated Knowledge Graphs}
+%\subtitle{A Tool for AI-Assisted Backwards Design}
 %% TODO: title is a working draft --- revisit once the evaluation lands.
 
 %% --- Authors ---
@@ -62,6 +62,23 @@
 
 %% ===========================================================================
 \begin{abstract}
+Instructors design courses carefully, yet structural misalignments — objectives never assessed, formative practice gaps below a mastery threshold, methods that don't maximize
+student learning — are difficult to detect by inspection alone. We present a tool that aligns
+three knowledge graphs:  one for the course content, one for the pedagogy and the science of learning, and the third for the course design.  A number of checks are run on the course
+design ensuring appropriate scaffolding and structure in topical coverage, student activities and Bloom's taxonomy.  (HELP don't love this)  The tool provides
+actionable, specific, research-based recommendations for improving student learning.
+
+We report on a preliminary study for courses throughout the CS curriculum evaluating the recommendations for validity, novelty
+and actionability.  In particular, we show that the tool consistently identified at least two actionable findings per course that the instructors indicate were readily adoptable.
+
+
+
+
+Instructor verification is decoupled from representation granularity: instructors confirm fidelity via a rendered weekly outline and a roughly 20-item structural census rather than inspecting individual graph nodes, reducing verification time to approximately 20 minutes.
+
+We report a formative multi-instructor field study (N=4–5) in which each instructor contributed one course they taught, pre-registered their top known issues before seeing tool output, then rated the tool's top findings on validity, novelty, and actionability. Our headline metric is novel-and-actionable findings — issues the tool surfaced that the instructor had not previously identified and would act on. The tool consistently identified at least one novel actionable finding per course. We reflect on encoding fidelity, finding consolidation, failure modes, and practical guidance for instructors considering adoption. All schema definitions, encoding prompts, and check implementations are publicly released.
+	
+	
 %% TODO: tighten once results are in. Per the study design, the abstract must
 %% NOT promise a level of "novel" findings the formative data may not deliver.
 Backwards design asks instructors to align learning outcomes, activities, and
